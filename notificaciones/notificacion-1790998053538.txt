@@ -1,0 +1,12 @@
+==================================================
+         REPORTE DE NOTIFICACIÓN LAMBDA          
+==================================================
+ Fecha y Hora: 2/10/2026, 10:27:33 p. m.
+ Estado:       EXITOSO (200)
+--------------------------------------------------
+ DATOS DEL EVENTO RECIBIDO:
+{
+  "statusCode": 200,
+  "body": "{\"Records\":[{\"s3\":{\"bucket\":{\"name\":\"laboratorio-floci\"},\"object\":{\"key\":\"mi-aplicacion/archivos/index.js\"}}}]}"
+}
+==================================================

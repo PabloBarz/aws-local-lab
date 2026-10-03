@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Lambda y Scheduler</title>
+</head>
+<body>
+
+    <style>
+        :root {
+          --primary-color: #ff9900;
+          --primary-hover: #ec8b00;
+          --success-color: #1d8102;
+          --success-hover: #145a01;
+          --danger-color: #d9534f;
+          --danger-hover: #c9302c;
+          --bg-color: #f4f6f9;
+          --card-bg: #ffffff;
+          --text-main: #232f3e;
+          --text-muted: #545b64;
+          --border-color: #d5dbdb;
+          --radius: 12px;
+        }
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+          background-color: var(--bg-color);
+          color: var(--text-main);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          min-height: 100vh;
+          padding: 40px 20px;
+        }
+
+        .container {
+          background-color: var(--card-bg);
+          padding: 32px;
+          border-radius: var(--radius);
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+          width: 100%;
+          max-width: 500px;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        h1 {
+          font-size: 1.75rem;
+          font-weight: 600;
+          margin-bottom: 8px;
+          text-align: center;
+        }
+
+        .subtitle {
+          color: var(--text-muted);
+          text-align: center;
+          margin-bottom: 24px;
+          font-size: 0.95rem;
+        }
+
+        .status-box {
+          background-color: #fafbfc;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 16px;
+          margin-bottom: 24px;
+          text-align: center;
+          font-size: 1rem;
+        }
+
+        .nav-buttons {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .control-buttons {
+          display: flex;
+          gap: 12px;
+        }
+
+        .btn {
+          font-size: 0.95rem;
+          font-weight: 600;
+          padding: 12px 16px;
+          border: none;
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 1;
+          text-align: center;
+        }
+
+        .btn-primary {
+          background-color: var(--primary-color);
+          color: white;
+          box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+        }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-success {
+          background-color: var(--success-color);
+          color: white;
+          box-shadow: 0 4px 12px rgba(29, 129, 2, 0.3);
+        }
+        .btn-success:hover:not(:disabled) { background-color: var(--success-hover); }
+
+        .btn-danger {
+          background-color: var(--danger-color);
+          color: white;
+          box-shadow: 0 4px 12px rgba(217, 83, 79, 0.3);
+        }
+        .btn-danger:hover:not(:disabled) { background-color: var(--danger-hover); }
+
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .btn:active {
+          transform: scale(0.98);
+        }
+    </style>
+
+    <div class="container">
+        <h1>Panel de Control Serverless</h1>
+        <p class="subtitle">Gestión y automatización de rutinas programadas</p>
+
+        <div class="nav-buttons">
+            <a href="/" class="btn btn-primary">⬅ Volver a inicio</a>
+        </div>
+
+        <div class="status-box">
+            Estado de la rutina: <span id="estado" style="font-weight: bold; color: var(--danger-color);">Detenido</span>
+        </div>
+        
+        <div class="control-buttons">
+            <button id="btnIniciar" onclick="iniciarRutina()" class="btn btn-success">Iniciar Lambda</button>
+            <button id="btnDetener" onclick="detenerRutina()" class="btn btn-danger" disabled>Detener</button>
+        </div>
+    </div>
+
+    <script>
+        
+        document.addEventListener("DOMContentLoaded", verificarEstado);
+
+        async function verificarEstado() {
+            try {
+                const res = await fetch('/api/scheduler-status');
+                const data = await res.json();
+                
+                if (data && data.activo) {
+                    // Si ya está corriendo, ajustamos la interfaz a ACTIVO
+                    document.getElementById('estado').innerText = "Ejecutándose cada 1 min";
+                    document.getElementById('estado').style.color = "var(--success-color)";
+                    document.getElementById('btnIniciar').disabled = true;
+                    document.getElementById('btnDetener').disabled = false;
+                }
+            } catch (error) {
+                console.error("No se pudo verificar el estado del scheduler", error);
+            }
+        }
+
+        async function iniciarRutina() {
+            const res = await fetch('/api/iniciar-scheduler', { method: 'POST' });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('estado').innerText = "Ejecutándose cada 1 min";
+                document.getElementById('estado').style.color = "var(--success-color)";
+                document.getElementById('btnIniciar').disabled = true;
+                document.getElementById('btnDetener').disabled = false;
+                alert(data.message);
+            } else {
+                alert("Error: " + data.error);
+            }
+        }
+
+        async function detenerRutina() {
+            const res = await fetch('/api/detener-scheduler', { method: 'POST' });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('estado').innerText = "Detenido";
+                document.getElementById('estado').style.color = "var(--danger-color)";
+                document.getElementById('btnIniciar').disabled = false;
+                document.getElementById('btnDetener').disabled = true;
+                alert(data.message);
+            } else {
+                alert("Error: " + data.error);
+            }
+        }
+    </script>
+</body>
+</html>

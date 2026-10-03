@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listado de Archivos AWS</title>
+</head>
+<body>
+
+  <style>
+    :root {
+      --primary-color: #ff9900;
+      --primary-hover: #ec8b00;
+      --danger-color: #d9534f;
+      --danger-hover: #c9302c;
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --text-main: #232f3e;
+      --text-muted: #545b64;
+      --border-color: #d5dbdb;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 900px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+
+    .btn-danger {
+      background-color: var(--danger-color);
+      color: white;
+    }
+    .btn-danger:hover { background-color: var(--danger-hover); }
+
+    .btn-download {
+      background-color: #232f3e;
+      color: white;
+      margin-right: 6px;
+    }
+    .btn-download:hover { background-color: #1a232c; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.9rem;
+    }
+
+    th {
+      background-color: #fafbfc;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background-color: #fcfdfe;
+    }
+
+    .actions {
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+  </style>
+
+  <div class="container">
+    <h1>Registros en AWS DynamoDB y S3</h1>
+    <p class="subtitle">Repositorio unificado de metadatos y almacenamiento físico</p>
+
+    <div class="nav-buttons">
+      <a href="/" class="btn btn-primary">⬅ Subir nuevo archivo</a>
+      <button onclick="cargarArchivos()" class="btn" style="background-color: #e7e9eb; color: var(--text-main);">🔄 Actualizar</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre del Archivo</th>
+          <th>Tipo (MIME)</th>
+          <th>Tamaño</th>
+          <th>Fecha Registro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-cuerpo">
+        <!-- Los datos de DynamoDB se renderizarán aquí dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Ejecutar la carga apenas abra la página
+    document.addEventListener("DOMContentLoaded", cargarArchivos);
+
+    async function cargarArchivos() {
+      const cuerpo = document.getElementById("tabla-cuerpo");
+      cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center;">Cargando registros...</td></tr>`;
+
+      try {
+        const response = await fetch("/api/archivos");
+        const data = await response.json();
+
+        if (!data.success || data.archivos.length === 0) {
+          cuerpo.innerHTML = `<tr><td colspan="5" class="empty-state">No se encontraron archivos registrados en la base de datos.</td></tr>`;
+          return;
+        }
+
+        cuerpo.innerHTML = ""; 
+
+        data.archivos.forEach(archivo => {
+          const fila = document.createElement("tr");
+
+          // Formatear tamaño de Bytes a KB de manera limpia
+          const tamanoKB = (archivo.tamano / 1024).toFixed(2) + " KB";
+          
+          // Formatear la fecha ISO para humanos
+          const fechaFormateada = new Date(archivo.fecha).toLocaleString();
+
+          fila.innerHTML = `
+            <td><strong>${archivo.nombre}</strong></td>
+            <td><code>${archivo.tipo}</code></td>
+            <td>${tamanoKB}</td>
+            <td>${fechaFormateada}</td>
+            <td class="actions">
+              <button onclick="descargarArchivo('${archivo.s3Key}')" class="btn btn-download">Descargar</button>
+              <button onclick="eliminarArchivo('${archivo.id}', '${archivo.s3Key}')" class="btn btn-danger">Eliminar</button>
+            </td>
+          `;
+          cuerpo.appendChild(fila);
+        });
+
+      } catch (error) {
+        console.error(error);
+        cuerpo.innerHTML = `<tr><td colspan="5" style="color:var(--danger-color); text-align:center;">Error al conectar con la API de listado.</td></tr>`;
+      }
+    }
+
+    async function descargarArchivo(s3Key) {
+      try {
+        const response = await fetch(`/api/archivos/descargar?key=${encodeURIComponent(s3Key)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          
+          window.open(data.url, "_blank");
+        } else {
+          alert("No se pudo obtener el enlace de descarga: " + data.message);
+        }
+      } catch (error) {
+        alert("Error en el proceso de descarga.");
+      }
+    }
+
+    async function eliminarArchivo(id, s3Key) {
+      if (!confirm("¿Está seguro de que desea eliminar permanentemente este archivo tanto de S3 como de DynamoDB?")) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/archivos/eliminar?id=${id}&key=${encodeURIComponent(s3Key)}`, { method: "DELETE" }); 
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert("Registro destruido con éxito.");
+          cargarArchivos(); 
+        } else {
+          alert("Error al eliminar: " + data.message);
+        }
+      } catch (error) {
+        alert("Ocurrió un error en la solicitud de eliminación.");
+      }
+    }
+  </script>
+</body>
+</html>
